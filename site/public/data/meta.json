@@ -1,0 +1,68 @@
+{
+  "count": 451,
+  "types": [
+    "AR",
+    "HG",
+    "MG",
+    "RF",
+    "SG",
+    "SMG"
+  ],
+  "rarities": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "bgs": [
+    [
+      "",
+      ""
+    ],
+    [
+      "collab",
+      "联动"
+    ],
+    [
+      "nation_Belgium",
+      "比利时"
+    ],
+    [
+      "nation_China",
+      "中国"
+    ],
+    [
+      "nation_German",
+      "德国"
+    ],
+    [
+      "nation_Italy",
+      "意大利"
+    ],
+    [
+      "nation_Russia",
+      "俄罗斯"
+    ],
+    [
+      "nation_US",
+      "美国"
+    ],
+    [
+      "team_404",
+      "404小队"
+    ],
+    [
+      "team_ar",
+      "AR小队"
+    ],
+    [
+      "team_defy",
+      "Defy小队"
+    ]
+  ],
+  "with_portrait": 445,
+  "with_skins": 342,
+  "skill_coverage": 0.9445676274944568,
+  "image_files": 4150,
+  "data_date": "2025-09-25"
+}
