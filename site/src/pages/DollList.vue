@@ -75,6 +75,7 @@
 </template>
 
 <script setup lang="ts">
+import { NBackTop, NInput, NSelect } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { loadIndex, TYPE_COLOR, type DollIndex } from '../data'

@@ -94,6 +94,12 @@ export async function loadDoll(wid: number): Promise<Doll | null> {
   return dollsCache.get(wid) ?? null
 }
 
+/** 全量人形（按 wid 排序），用于上一人/下一人导航。 */
+export async function loadAll(): Promise<Doll[]> {
+  await loadDoll(0)
+  return [...(dollsCache ?? new Map())].map(([, d]) => d).sort((a, b) => a.wid - b.wid)
+}
+
 export const TYPE_COLOR: Record<string, string> = {
   HG: 'var(--type-hg)',
   SMG: 'var(--type-smg)',

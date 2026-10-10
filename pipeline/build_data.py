@@ -110,34 +110,36 @@ def main():
         elif pre == '5':
             gun_desc[sid] = v
 
-    # --- skills: key = prefix + skillid + level(2) ---
+    # --- skills: 键 = <字段前缀:1><技能base:6><等级:2>；两代格式：名称字段 gen1=1 / gen2=2 ---
+    # gen1（例 柯尔特 100503）：1=名 2=描述 3=详情
+    # gen2（例 春田 Lua 1008005 → base 008005）：2=名 3=描述 4=详情
+    # Lua 里的 skill1 若为 7 位且以 1 开头，需去首位后按 base 查（脚本内 candidates 处理）
     sk_txt = load_texttable('battle_skill_config.txt')
     skills = {}
     for k, v in sk_txt.items():
         num = k.split('-', 1)[1]
-        pre, sid, lv = num[0], num[1:-2], num[-2:]
-        d = skills.setdefault(sid, {})
-        if pre == '1':
-            d['name'] = v
-        elif pre == '2':
-            d.setdefault('desc', {})[int(lv)] = v
-        elif pre == '3':
-            d.setdefault('detail', {})[int(lv)] = v
+        pre, base, lv = num[0], num[1:-2], num[-2:]
+        skills.setdefault(base, {}).setdefault(pre, {})[int(lv)] = v
 
     def skill_payload(sid):
         if sid is None:
             return None
-        s = skills.get(str(sid))
-        if not s or not s.get('name'):
-            return None
-        desc = s.get('desc', {})
-        det = s.get('detail', {})
-        lv1, lvmax = desc.get(1, ''), desc.get(10, '')
-        return {
-            'id': sid, 'name': s['name'],
-            'desc_lv1': lv1, 'desc_lv10': lvmax,
-            'detail_lv10': det.get(10, ''),
-        }
+        for cand in dict.fromkeys([str(sid), str(sid)[1:], str(sid).zfill(6)]):
+            s = skills.get(cand)
+            if not s:
+                continue
+            name_pre = next((p for p in ('1', '2') if s.get(p, {}).get(1) or s.get(p, {}).get(10)), None)
+            if not name_pre:
+                continue
+            np_ = int(name_pre)
+            desc = s.get(str(np_ + 1), {})
+            det = s.get(str(np_ + 2), {})
+            return {
+                'id': sid, 'name': (s[name_pre].get(1) or s[name_pre].get(10) or '').strip(),
+                'desc_lv1': desc.get(1, ''), 'desc_lv10': desc.get(10, ''),
+                'detail_lv10': det.get(10, ''),
+            }
+        return None
 
     # --- skins.csv ---
     skins_csv = {}
@@ -168,6 +170,33 @@ def main():
                 continue
             slot[base_kind] = r['collected_as']
 
+    # --- AVG 兜底：无静态三件套的角色（如 CAR 仅 Spine+AVG），用 AVG 基础剧情图当立绘 ---
+    import glob as _glob
+    def avg_fallback(wid, code, en_name):
+        key = (wid, 0, False)
+        if key in portraits and portraits[key].get('normal'):
+            return
+        for cand in (code, en_name):
+            if not cand:
+                continue
+            cdir = os.path.join(ROOT, 'extracted', 'characters', re.sub(r'[^a-z0-9]', '', cand.lower()))
+            if not os.path.isdir(cdir):
+                continue
+            exact = os.path.join(cdir, 'avg', f'Pic_{cand}.png')
+            picks = []
+            if os.path.exists(exact):
+                picks.append(exact)
+            else:
+                for p in sorted(_glob.glob(os.path.join(cdir, 'avg', 'Pic_*.png'))):
+                    b = os.path.basename(p)
+                    if re.fullmatch(r'Pic_[A-Za-z0-9]+\.png', b):
+                        picks.append(p)
+                        break
+            if picks:
+                rel = os.path.relpath(picks[0], ROOT).replace('\\', '\\\\')
+                portraits.setdefault(key, {})['normal'] = rel
+                break
+
     def img_paths(wid, skin_id, is_mod):
         slot = portraits.get((wid, skin_id, is_mod))
         if not slot:
@@ -187,6 +216,7 @@ def main():
     result = []
     for wid in sorted(dolls):
         d = dolls[wid]
+        avg_fallback(wid, d.get('code', ''), d.get('en_name', ''))
         gtype = GUN_TYPES.get(d.get('guntype'), '?')
         gid = d['id']
         mod_tab = mods.get(20000 + gid, {}) if (mods and d.get('mod')) else {}

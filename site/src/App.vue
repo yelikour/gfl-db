@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { darkTheme, type GlobalThemeOverrides } from 'naive-ui'
+import { NConfigProvider, darkTheme, type GlobalThemeOverrides } from 'naive-ui'
 import { RouterLink, RouterView } from 'vue-router'
 
 const themeOverrides: GlobalThemeOverrides = {

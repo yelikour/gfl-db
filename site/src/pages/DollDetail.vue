@@ -147,6 +147,22 @@
           <h2>原型枪械资料 <span class="en-note">(EN)</span></h2>
           <pre class="desc">{{ doll.desc_en }}</pre>
         </div>
+
+        <!-- prev / next -->
+        <div class="adj-nav">
+          <RouterLink v-if="prevDoll" :to="`/dolls/${prevDoll.wid}`" class="adj">
+            <span class="arrow">‹</span>
+            <img v-if="prevDoll.base.thumbnail || prevDoll.base.normal" :src="prevDoll.base.thumbnail || prevDoll.base.normal" />
+            <span class="adj-name">{{ prevDoll.name }}</span>
+          </RouterLink>
+          <span v-else class="adj empty"></span>
+          <RouterLink v-if="nextDoll" :to="`/dolls/${nextDoll.wid}`" class="adj right">
+            <span class="adj-name">{{ nextDoll.name }}</span>
+            <img v-if="nextDoll.base.thumbnail || nextDoll.base.normal" :src="nextDoll.base.thumbnail || nextDoll.base.normal" />
+            <span class="arrow">›</span>
+          </RouterLink>
+          <span v-else class="adj empty"></span>
+        </div>
       </div>
     </div>
   </div>
@@ -163,9 +179,12 @@
 </template>
 
 <script setup lang="ts">
+import {
+  NButton, NDescriptions, NDescriptionsItem, NEmpty, NResult, NSpin, NTag
+} from 'naive-ui'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { loadDoll, TYPE_COLOR, STAT_LABEL, produceTimeFmt, type Doll, type Skill } from '../data'
+import { loadDoll, loadAll, TYPE_COLOR, STAT_LABEL, produceTimeFmt, type Doll, type Skill } from '../data'
 
 const route = useRoute()
 const doll = ref<Doll | null>(null)
@@ -258,9 +277,15 @@ watch(damaged, (v) => {
   if (v && !currentArtSet.value.damaged) damaged.value = false
 })
 
-onMounted(async () => {
-  const wid = Number(route.params.wid)
-  const d = await loadDoll(wid)
+const prevDoll = ref<Doll | null>(null)
+const nextDoll = ref<Doll | null>(null)
+
+async function load(wid: number) {
+  error.value = false
+  doll.value = null
+  form.value = 'base'
+  damaged.value = false
+  const [d, all] = await Promise.all([loadDoll(wid), loadAll()])
   if (!d) { error.value = true; return }
   doll.value = d
   if (!d.base.normal && !d.base.damaged) {
@@ -271,6 +296,14 @@ onMounted(async () => {
     }
   }
   document.title = `${d.name} - 少女前线资料库`
+  const i = all.findIndex((x) => x.wid === wid)
+  prevDoll.value = i > 0 ? all[i - 1] : null
+  nextDoll.value = i >= 0 && i < all.length - 1 ? all[i + 1] : null
+}
+
+onMounted(() => load(Number(route.params.wid)))
+watch(() => route.params.wid, (w) => {
+  if (w && route.name === 'doll') load(Number(w))
 })
 </script>
 
@@ -416,5 +449,43 @@ h2 { font-size: 17px; margin: 0 0 12px; color: var(--gfl-gold); }
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }
   .art { position: static; }
+}
+
+.adj-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.adj {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--gfl-panel);
+  border: 1px solid rgba(212, 176, 106, 0.18);
+  border-radius: 10px;
+  padding: 8px 12px;
+  text-decoration: none !important;
+  color: var(--gfl-text);
+  min-width: 0;
+  transition: border-color 0.15s;
+}
+.adj:hover { border-color: rgba(212, 176, 106, 0.55); }
+.adj.right { justify-content: flex-end; }
+.adj.empty { visibility: hidden; }
+.adj .arrow { color: var(--gfl-gold-bright); font-size: 20px; font-weight: 800; }
+.adj img {
+  width: 34px;
+  height: 38px;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: 6px;
+}
+.adj-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
